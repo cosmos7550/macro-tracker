@@ -9,7 +9,6 @@ AI-powered calorie and macro tracker. Describe a meal in plain text estimates ar
 ## Requirements
 
 - [Anthropic API key](https://console.anthropic.com/)
-- Node.js 18+ or Docker
 
 ## Setup
 

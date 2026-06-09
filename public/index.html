@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="theme-color" content="#f4f1ec">
+  <title>Macro Tracker</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            serif: ['"Cormorant Garamond"', 'Georgia', 'serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body class="overflow-hidden" style="background:#f4f1ec">
+
+<div id="app" class="h-screen flex flex-col max-w-lg mx-auto relative overflow-hidden" style="background:#f4f1ec">
+
+  <main class="flex-1 overflow-y-auto pb-20" id="main-scroll">
+
+    <!-- ═══ LOG FOOD TAB ═══════════════════════════════════════════════════ -->
+    <div id="tab-log" class="tab-panel px-6 pt-10">
+      <h1 class="font-serif text-4xl font-light text-[#1c1917] leading-none mb-2">Log Food</h1>
+      <p class="font-serif italic text-[#a09a93] text-base mb-6">describe what you ate</p>
+
+      <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center gap-2">
+          <button id="log-date-prev" class="p-1 transition-colors" style="color:#c4bdb5">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+          </button>
+          <button id="log-date-next" class="p-1 transition-colors" style="color:#c4bdb5">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+          </button>
+          <span style="font-size:0.75rem;letter-spacing:0.06em;text-transform:uppercase;color:#6b6560;font-weight:500">Logging for: <span id="log-date-label"></span></span>
+          <div style="position:relative;display:inline-block">
+            <button id="log-date-change" style="color:#c4bdb5;padding:4px" title="Change date">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+            </button>
+            <input type="date" id="log-date-picker" max="" style="position:absolute;top:0;left:0;opacity:0;width:100%;height:100%;cursor:pointer" tabindex="-1">
+          </div>
+        </div>
+        <div id="log-today-wrap"></div>
+      </div>
+
+      <div class="bg-white border border-[#e0dbd3] p-4 mb-6" style="border-radius:2px">
+        <textarea
+          id="food-input"
+          rows="4"
+          placeholder="e.g. chicken and rice, oat milk latte, protein bar…"
+          class="w-full resize-none text-[#1c1917] text-sm placeholder-[#c4bdb5] focus:outline-none leading-relaxed"
+          style="background:transparent"
+        ></textarea>
+        <div class="flex items-center justify-between mt-3 pt-3 border-t border-[#f0ece6]">
+          <span id="food-char-hint" class="text-xs text-[#c4bdb5]"></span>
+          <button
+            id="log-submit-btn"
+            class="text-xs tracking-widest uppercase px-5 py-2.5 font-medium transition-all disabled:opacity-40"
+            style="background:#1c1917;color:#f4f1ec;border-radius:1px"
+          >
+            Log Food
+          </button>
+        </div>
+      </div>
+
+      <div id="log-error" class="hidden mb-4 p-3 border border-[#d4a0a0] text-sm text-[#8b3a3a]" style="background:#fdf4f4;border-radius:2px"></div>
+
+      <div id="quick-log-bar" class="mb-4"></div>
+
+      <div class="mt-2">
+        <p class="text-xs tracking-widest uppercase text-[#c4bdb5] mb-3">Notes</p>
+        <div class="space-y-2">
+          <p class="text-xs text-[#a09a93]">Weigh food when possible for the most accurate estimate</p>
+          <p class="text-xs text-[#a09a93]">Name the restaurant — published data beats estimates</p>
+          <p class="text-xs text-[#a09a93]">Sauces and dressings add 100–300 cal; mention them</p>
+          <p class="text-xs text-[#a09a93]">For home cooking, list key ingredients separately</p>
+          <p class="text-xs text-[#a09a93]">Drinks count — coffee with milk, juice, protein shakes</p>
+        </div>
+      </div>
+
+      <div class="mt-10 pt-6" style="border-top:1px solid #e0dbd3">
+        <p class="text-xs tracking-widest uppercase text-[#c4bdb5] mb-3">Developer</p>
+        <div class="flex gap-3 flex-wrap">
+          <button id="test-thinking-btn"
+            class="text-xs tracking-widest uppercase px-4 py-2 font-medium transition-all"
+            style="border:1px solid #e0dbd3;color:#a09a93;border-radius:1px">
+            Preview thinking animation
+          </button>
+          <button id="dev-copy-prompt-btn"
+            class="text-xs tracking-widest uppercase px-4 py-2 font-medium transition-all"
+            style="border:1px solid #e0dbd3;color:#a09a93;border-radius:1px">
+            Copy prompt
+          </button>
+        </div>
+        <div id="dev-prompt-panel" style="display:none" class="mt-4 space-y-3">
+          <p class="text-xs text-[#c4bdb5] tracking-wide">Prompt that will be sent to the API:</p>
+          <textarea id="dev-prompt-display" readonly rows="2"
+            class="w-full text-xs resize-y focus:outline-none leading-relaxed"
+            style="border:1px solid #e0dbd3;border-radius:1px;padding:10px 12px;background:#faf8f4;color:#6b6560;font-family:monospace;field-sizing:fixed;overflow-y:auto"></textarea>
+          <p class="text-xs text-[#c4bdb5] tracking-wide">Paste an LLM response here to test parsing:</p>
+          <textarea id="dev-response-input" rows="6"
+            placeholder='{"title":"...","items":[{"name":"...","cal":0,"p":0,"c":0,"f":0,"conf":"high"}]}'
+            class="w-full text-xs resize-y focus:outline-none leading-relaxed"
+            style="border:1px solid #e0dbd3;border-radius:1px;padding:10px 12px;background:#faf8f4;color:#1c1917;font-family:monospace"></textarea>
+          <div id="dev-response-error" class="hidden text-xs text-[#8b3a3a]" style="padding:6px 0"></div>
+          <button id="dev-use-response-btn"
+            class="text-xs tracking-widest uppercase px-4 py-2 font-medium transition-all"
+            style="border:1px solid #e0dbd3;color:#a09a93;border-radius:1px">
+            Use this response
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ JOURNAL TAB ════════════════════════════════════════════════════ -->
+    <div id="tab-journal" class="tab-panel hidden px-6 pt-10">
+      <h1 class="font-serif text-4xl font-light text-[#1c1917] leading-none mb-6">Journal</h1>
+      <div id="journal-date" class="mb-5"></div>
+      <div id="daily-totals" class="mb-6 pb-6" style="border-bottom:1px solid #e0dbd3"></div>
+      <div id="entry-list"></div>
+    </div>
+
+    <!-- ═══ GOALS TAB ══════════════════════════════════════════════════════ -->
+    <div id="tab-goals" class="tab-panel hidden px-6 pt-10">
+      <div class="flex items-center justify-between mb-6">
+        <h1 class="font-serif text-4xl font-light text-[#1c1917] leading-none">Goals</h1>
+        <button id="goals-settings-btn" style="color:#c4bdb5;padding:4px" title="Daily Targets">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+        </button>
+      </div>
+
+      <div id="goals-progress" class="mb-6 pb-6" style="border-bottom:1px solid #e0dbd3"></div>
+      <p class="text-xs tracking-widest uppercase mb-4" style="color:#a09a93">7 Day Progress</p>
+      <div id="calorie-chart" class="mb-4"></div>
+      <div id="protein-chart" class="mb-5"></div>
+    </div>
+
+  </main>
+
+  <!-- ═══ BOTTOM TAB BAR ════════════════════════════════════════════════════ -->
+  <nav class="tab-nav fixed bottom-0 left-0 right-0 max-w-lg mx-auto flex" style="background:#f4f1ec;border-top:1px solid #e0dbd3">
+    <button class="tab-btn flex-1 py-4 text-xs tracking-widest uppercase font-medium" data-tab="log">Log</button>
+    <button class="tab-btn flex-1 py-4 text-xs tracking-widest uppercase font-medium" data-tab="journal">Journal</button>
+    <button class="tab-btn flex-1 py-4 text-xs tracking-widest uppercase font-medium" data-tab="goals">Goals</button>
+  </nav>
+
+  <!-- ═══ MODAL OVERLAY ════════════════════════════════════════════════════ -->
+  <div id="modal-overlay" class="absolute inset-0 z-50 items-end justify-center" style="display:none;background:rgba(28,25,23,0.5)">
+    <div id="modal-sheet" class="modal-sheet w-full flex flex-col" style="background:#faf8f4;max-height:90vh;border-radius:2px 2px 0 0">
+      <div id="modal-content" class="p-6 overflow-y-auto flex-1 min-h-0"></div>
+      <div id="modal-actions" class="px-6 pb-safe" style="flex-shrink:0;display:none"></div>
+    </div>
+  </div>
+
+</div>
+
+<script src="/app.js"></script>
+</body>
+</html>

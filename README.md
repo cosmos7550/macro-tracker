@@ -20,6 +20,31 @@ Copy `.env.example` to `.env` and add your API key:
    ```
 
 
+## Docker
+
+**Docker Compose:**
+```bash
+docker compose up -d
+```
+
+**Manual docker run (Unraid):**
+```bash
+docker run -d \
+  --name macro-tracker \
+  --restart unless-stopped \
+  -p 3052:3000 \
+  -v /mnt/user/appdata/macro-tracker/data:/app/data \
+  --env-file /mnt/user/appdata/macro-tracker/.env \
+  earful1751/macro-tracker:latest
+```
+
+| Flag | Purpose |
+|------|---------|
+| `-p 3052:3000` | Exposes the app on port 3052 |
+| `-v .../data:/app/data` | Persists your food journal outside the container |
+| `--env-file` | Passes your API key without baking it into the image |
+| `--restart unless-stopped` | Auto-starts the container after an Unraid reboot |
+
 ## API
 
 | Endpoint | Method | Description |

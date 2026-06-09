@@ -3,6 +3,8 @@ name: Build & Push
 on:
   push:
     branches: [main]
+  release:
+    types: [published]
   workflow_dispatch:
 
 jobs:
@@ -17,8 +19,17 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: Set tags
+        id: tags
+        run: |
+          TAGS="earful1751/macro-tracker:latest"
+          if [ "${{ github.event_name }}" = "release" ]; then
+            TAGS="$TAGS,earful1751/macro-tracker:${{ github.ref_name }}"
+          fi
+          echo "tags=$TAGS" >> $GITHUB_OUTPUT
+
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
           push: true
-          tags: earful1751/macro-tracker:latest
+          tags: ${{ steps.tags.outputs.tags }}

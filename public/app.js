@@ -234,7 +234,7 @@ async function renderQuickLog() {
     return '<button class="quick-log-chip" data-id="' + esc(e.id) + '" ' +
       'style="display:inline-flex;flex-direction:column;align-items:flex-start;background:#fff;border:1px solid #e0dbd3;border-radius:2px;padding:7px 10px;cursor:pointer;text-align:left;max-width:160px;flex-shrink:0">' +
       '<span style="font-size:0.75rem;color:#1c1917;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px">' + esc(label) + '</span>' +
-      '<span style="font-size:0.65rem;color:#a09a93;margin-top:2px;letter-spacing:0.03em">' + Math.round(e.calories) + ' calories · ' + Math.round(e.protein) + 'p</span>' +
+      '<span style="font-size:0.65rem;color:#a09a93;margin-top:2px;letter-spacing:0.03em">' + Math.round(e.calories) + ' cal · ' + Math.round(e.protein) + 'p</span>' +
     '</button>';
   }).join('');
   bar.innerHTML =

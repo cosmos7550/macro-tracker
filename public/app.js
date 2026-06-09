@@ -219,7 +219,7 @@ async function buildQuickLogItems() {
   });
   return Object.keys(counts)
     .sort(function(a, b) { return counts[b] - counts[a] || best[b].createdAt.localeCompare(best[a].createdAt); })
-    .slice(0, 8)
+    .slice(0, 9)
     .map(function(k) { return best[k]; });
 }
 
@@ -238,7 +238,7 @@ async function renderQuickLog() {
   }).join('');
   bar.innerHTML =
     '<p style="font-size:0.65rem;letter-spacing:0.08em;text-transform:uppercase;color:#c4bdb5;margin-bottom:8px">Quick log</p>' +
-    '<div style="display:flex;flex-wrap:wrap;gap:8px">' + chips + '</div>';
+    '<div style="display:flex;flex-wrap:wrap;gap:8px;max-height:170px;overflow:hidden">' + chips + '</div>';
   bar.querySelectorAll('.quick-log-chip').forEach(function(btn) {
     btn.addEventListener('click', async function() {
       var id = btn.dataset.id;

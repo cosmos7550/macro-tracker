@@ -67,14 +67,18 @@
           style="background:transparent"
         ></textarea>
         <div class="flex items-center justify-between mt-3 pt-3 border-t border-[#f0ece6]">
-          <span id="food-char-hint" class="text-xs text-[#c4bdb5]"></span>
+          <div class="flex items-center gap-3">
+            <span id="food-char-hint" class="text-xs text-[#c4bdb5]"></span>
+            <button id="tips-btn"
+              style="width:26px;height:26px;border-radius:50%;border:1px solid #c4bdb5;background:transparent;color:#a09a93;font-size:0.85rem;font-style:italic;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0"
+              aria-label="Logging tips"
+            >i</button>
+          </div>
           <button
             id="log-submit-btn"
             class="text-xs tracking-widest uppercase px-5 py-2.5 font-medium transition-all disabled:opacity-40"
             style="background:#1c1917;color:#f4f1ec;border-radius:1px"
-          >
-            Log Food
-          </button>
+          >Log Food</button>
         </div>
       </div>
 
@@ -82,16 +86,6 @@
 
       <div id="quick-log-bar" class="mb-4"></div>
 
-      <div class="mt-2">
-        <p class="text-xs tracking-widest uppercase text-[#c4bdb5] mb-3">Notes</p>
-        <div class="space-y-2">
-          <p class="text-xs text-[#a09a93]">Weigh food when possible for the most accurate estimate</p>
-          <p class="text-xs text-[#a09a93]">Name the restaurant — published data beats estimates</p>
-          <p class="text-xs text-[#a09a93]">Sauces and dressings add 100–300 cal; mention them</p>
-          <p class="text-xs text-[#a09a93]">For home cooking, list key ingredients separately</p>
-          <p class="text-xs text-[#a09a93]">Drinks count — coffee with milk, juice, protein shakes</p>
-        </div>
-      </div>
 
       <div id="weight-log" class="mt-6 pt-6" style="border-top:1px solid #e0dbd3"></div>
 

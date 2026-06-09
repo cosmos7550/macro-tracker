@@ -6,6 +6,10 @@ AI-powered calorie and macro tracker. Describe a meal in plain text estimates ar
 
 <img src="public/apple-touch-icon.png" width="80" />
 
+## Screenshots
+
+<img src=".github/journal-page.JPG" width="30%" /> <img src=".github/add-food-page.JPG" width="30%" /> <img src=".github/goal-page.JPG" width="30%" />
+
 ## Requirements
 
 - [Anthropic API key](https://console.anthropic.com/)

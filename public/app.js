@@ -218,6 +218,7 @@ async function buildQuickLogItems() {
     });
   });
   return Object.keys(counts)
+    .filter(function(k) { return k !== 'placeholder meal from import'; })
     .sort(function(a, b) { return counts[b] - counts[a] || best[b].createdAt.localeCompare(best[a].createdAt); })
     .slice(0, 12)
     .map(function(k) { return best[k]; });

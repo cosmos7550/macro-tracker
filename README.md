@@ -33,7 +33,7 @@ docker run -d \
   --name macro-tracker \
   --restart unless-stopped \
   -p 3052:3000 \
-  -v <path to store food journal data> \
+  -v <path to store food journal data>:/app/data \
   --env <path to the env file> \
   earful1751/macro-tracker:latest
 ```

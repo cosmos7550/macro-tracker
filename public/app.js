@@ -1,5 +1,24 @@
 'use strict';
 
+// ── Dev mode ──────────────────────────────────────────────────────────────────
+(function() {
+  if (localStorage.getItem('devMode') === '1') {
+    document.getElementById('dev-section').style.display = '';
+  }
+})();
+
+function showToast(msg) {
+  var el = document.createElement('div');
+  el.textContent = msg;
+  el.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1c1917;color:#f4f1ec;font-size:0.75rem;letter-spacing:0.05em;padding:8px 16px;border-radius:1px;z-index:9999;pointer-events:none;opacity:0;transition:opacity 0.2s';
+  document.body.appendChild(el);
+  requestAnimationFrame(function() { el.style.opacity = '1'; });
+  setTimeout(function() {
+    el.style.opacity = '0';
+    setTimeout(function() { el.remove(); }, 200);
+  }, 2000);
+}
+
 // ── Storage helpers ───────────────────────────────────────────────────────────
 function todayKey() {
   const d = new Date();
@@ -1504,7 +1523,7 @@ function openTargetsModal() {
     var t = goals && goals.targets ? goals.targets : {};
     content.innerHTML =
       '<div class="flex items-center justify-between mb-5">' +
-        '<h2 style="font-family:\'Cormorant Garamond\',Georgia,serif;font-size:1.5rem;font-weight:400;color:#1c1917;line-height:1">Daily Targets</h2>' +
+        '<h2 id="targets-modal-title" style="font-family:\'Cormorant Garamond\',Georgia,serif;font-size:1.5rem;font-weight:400;color:#1c1917;line-height:1;cursor:default;user-select:none">Daily Targets</h2>' +
         '<button id="targets-close" style="color:#c4bdb5;padding:4px">' + CLOSE_ICON + '</button>' +
       '</div>' +
       '<div class="grid grid-cols-2 gap-3 mb-4">' +
@@ -1528,6 +1547,25 @@ function openTargetsModal() {
       '<button id="modal-save-targets-btn" class="w-full text-xs tracking-widest uppercase py-3 font-medium transition-all" style="background:#1c1917;color:#f4f1ec;border-radius:1px">Save Targets</button>';
 
     document.getElementById('targets-close').addEventListener('click', closeModal);
+
+    var tapCount = 0;
+    var tapTimer = null;
+    document.getElementById('targets-modal-title').addEventListener('click', function() {
+      tapCount++;
+      clearTimeout(tapTimer);
+      tapTimer = setTimeout(function() { tapCount = 0; }, 2000);
+      var remaining = 7 - tapCount;
+      if (tapCount >= 3 && remaining > 0) {
+        showToast(remaining + ' more tap' + (remaining === 1 ? '' : 's') + ' to ' + (localStorage.getItem('devMode') === '1' ? 'disable' : 'enable') + ' dev mode');
+      } else if (tapCount >= 7) {
+        tapCount = 0;
+        var enabled = localStorage.getItem('devMode') !== '1';
+        localStorage.setItem('devMode', enabled ? '1' : '0');
+        document.getElementById('dev-section').style.display = enabled ? '' : 'none';
+        showToast('Developer mode ' + (enabled ? 'enabled' : 'disabled'));
+      }
+    });
+
     document.getElementById('modal-save-targets-btn').addEventListener('click', async function() {
       var targets = {
         calories: parseInt(document.getElementById('modal-target-calories').value, 10) || 0,

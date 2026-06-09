@@ -136,7 +136,7 @@ button:focus:not(:focus-visible) {
 
 /* ── Scroll behaviour ──────────────────────────────────────────────────────── */
 #main-scroll {
-  overscroll-behavior: none;
+  overscroll-behavior-x: none;
   touch-action: pan-y;
 }
 

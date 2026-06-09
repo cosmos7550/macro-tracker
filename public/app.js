@@ -119,7 +119,7 @@ async function renderWeightLog() {
         'style="width:90px;border:1px solid #e0dbd3;border-radius:1px;padding:6px 10px;font-size:0.875rem;background:transparent;color:#1c1917;text-align:center" ' +
         'class="focus:outline-none focus:border-[#1c1917] transition-colors">' +
       '<span style="font-size:0.75rem;color:#6b6560">lbs</span>' +
-      '<button id="weight-save-btn" class="text-xs tracking-widest uppercase px-4 py-2 font-medium transition-all" style="background:#1c1917;color:#f4f1ec;border-radius:1px">Save</button>' +
+      '<button id="weight-save-btn" class="text-xs tracking-widest uppercase px-4 py-2 font-medium transition-all" style="background:#1c1917;color:#f4f1ec;border-radius:1px">Log Weight</button>' +
       '<span id="weight-save-hint" style="font-size:0.7rem;color:#a09a93"></span>' +
     '</div>';
   var capturedDate = date;
@@ -219,7 +219,7 @@ async function buildQuickLogItems() {
   });
   return Object.keys(counts)
     .sort(function(a, b) { return counts[b] - counts[a] || best[b].createdAt.localeCompare(best[a].createdAt); })
-    .slice(0, 9)
+    .slice(0, 12)
     .map(function(k) { return best[k]; });
 }
 

@@ -194,6 +194,16 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // ── Favicon.ico fallback ─────────────────────────────────────────────────────
+  if (url.pathname === '/favicon.ico') {
+    try {
+      const ico = fs.readFileSync(path.join(PUBLIC, '/favicon-32x32.png'));
+      res.writeHead(200, { 'Content-Type': 'image/png', 'Cache-Control': 'no-store' });
+      res.end(ico);
+    } catch (_) { res.writeHead(404); res.end(); }
+    return;
+  }
+
   // ── Static files ─────────────────────────────────────────────────────────────
 
   const filePath = url.pathname === '/' ? '/index.html' : url.pathname;

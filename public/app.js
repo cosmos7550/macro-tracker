@@ -83,6 +83,70 @@ async function saveGoals(targets) {
   });
 }
 
+async function getWeight(date) {
+  date = date || todayKey();
+  try {
+    var r = await fetch('/api/weight/' + date);
+    return r.ok ? r.json() : null;
+  } catch (_) { return null; }
+}
+
+async function saveWeight(date, weight) {
+  var r = await fetch('/api/weight/' + date, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ date: date, weight: weight })
+  });
+  if (!r.ok) throw new Error('Save failed (' + r.status + ')');
+}
+
+async function deleteWeight(date) {
+  var r = await fetch('/api/weight/' + date, { method: 'DELETE' });
+  if (!r.ok) throw new Error('Delete failed (' + r.status + ')');
+}
+
+async function renderWeightLog() {
+  var el = document.getElementById('weight-log');
+  if (!el) return;
+  var date = logDate;
+  var existing = await getWeight(date);
+  var currentVal = existing && existing.weight ? existing.weight : '';
+  el.innerHTML =
+    '<p style="font-size:0.75rem;letter-spacing:0.1em;text-transform:uppercase;color:#a09a93;margin-bottom:12px">Body Weight</p>' +
+    '<div style="display:flex;align-items:center;gap:8px">' +
+      '<input type="number" id="weight-input" min="50" max="999" step="0.1" inputmode="decimal" ' +
+        'placeholder="—" value="' + currentVal + '" ' +
+        'style="width:90px;border:1px solid #e0dbd3;border-radius:1px;padding:6px 10px;font-size:0.875rem;background:transparent;color:#1c1917;text-align:center" ' +
+        'class="focus:outline-none focus:border-[#1c1917] transition-colors">' +
+      '<span style="font-size:0.75rem;color:#6b6560">lbs</span>' +
+      '<button id="weight-save-btn" class="text-xs tracking-widest uppercase px-4 py-2 font-medium transition-all" style="background:#1c1917;color:#f4f1ec;border-radius:1px">Save</button>' +
+      '<span id="weight-save-hint" style="font-size:0.7rem;color:#a09a93"></span>' +
+    '</div>';
+  var capturedDate = date;
+  document.getElementById('weight-save-btn').addEventListener('click', async function() {
+    var raw = document.getElementById('weight-input').value;
+    var val = parseFloat(raw);
+    var hint = document.getElementById('weight-save-hint');
+    try {
+      if (!raw.trim() || isNaN(val) || val < 1) {
+        await deleteWeight(capturedDate);
+      } else {
+        await saveWeight(capturedDate, val);
+      }
+      if (hint) {
+        hint.textContent = 'saved';
+        hint.style.color = '#a09a93';
+        setTimeout(function() { if (hint) hint.textContent = ''; }, 1500);
+      }
+    } catch (e) {
+      if (hint) {
+        hint.textContent = 'error — is the server running?';
+        hint.style.color = '#8b3a3a';
+      }
+    }
+  });
+}
+
 
 function computeTotals(entries) {
   return entries.reduce(function(acc, e) {
@@ -205,6 +269,7 @@ async function renderQuickLog() {
       openModal(renderConfirmModal);
     });
   });
+  renderWeightLog();
 }
 
 function switchTab(tab) {
@@ -464,6 +529,7 @@ function renderLogDateLabel() {
       wrap.innerHTML = '';
     }
   }
+  renderWeightLog();
 }
 
 function shiftLogDate(days) {
@@ -1515,6 +1581,86 @@ function renderWeekChart(el, title, days, overThreshold, normalColor, overColor,
     '</div>';
 }
 
+// ── Weight line chart ─────────────────────────────────────────────────────────
+function renderWeightChart(el, days) {
+  if (!el) return;
+
+  var daysWithData = days.filter(function(d) { return d.hasData; });
+
+  if (daysWithData.length === 0) {
+    el.innerHTML =
+      '<p style="font-size:0.6rem;letter-spacing:0.1em;text-transform:uppercase;color:#a09a93;margin-bottom:10px">Weight (lbs)</p>' +
+      '<p style="font-size:0.75rem;color:#c4bdb5;font-style:italic">Keep logging to see weekly trends</p>';
+    return;
+  }
+
+  var avg = daysWithData.reduce(function(s, d) { return s + d.value; }, 0) / daysWithData.length;
+
+  var allVals = daysWithData.map(function(d) { return d.value; });
+  var minVal = Math.min.apply(null, allVals);
+  var maxVal = Math.max.apply(null, allVals);
+  var padding = Math.max((maxVal - minVal) * 0.4, 2);
+  var lo = minVal - padding;
+  var hi = maxVal + padding;
+  var range = hi - lo || 1;
+
+  function yPct(v) { return (1 - (v - lo) / range) * 100; }
+
+  var gridHtml = [0.25, 0.5, 0.75].map(function(p) {
+    return '<div style="position:absolute;left:0;right:0;top:' + ((1-p)*100) + '%;border-top:1px solid #ede9e2;pointer-events:none"></div>';
+  }).join('');
+
+  var n = days.length;
+  var pts = days.map(function(d, i) {
+    return { x: ((i + 0.5) / n * 100), y: d.hasData ? yPct(d.value) : null, hasData: d.hasData, value: d.value };
+  });
+
+  var lineSegs = [];
+  var cur = [];
+  pts.forEach(function(p) {
+    if (p.hasData) { cur.push(p); }
+    else if (cur.length) { lineSegs.push(cur); cur = []; }
+  });
+  if (cur.length) lineSegs.push(cur);
+
+  var linesHtml = lineSegs.map(function(seg) {
+    if (seg.length < 2) return '';
+    var d = 'M ' + seg[0].x + ',' + seg[0].y;
+    for (var i = 1; i < seg.length; i++) {
+      var p = seg[i-1], q = seg[i], mx = (p.x + q.x) / 2;
+      d += ' C ' + mx + ',' + p.y + ' ' + mx + ',' + q.y + ' ' + q.x + ',' + q.y;
+    }
+    return '<path d="' + d + '" fill="none" stroke="#6b6560" stroke-width="2" vector-effect="non-scaling-stroke"/>';
+  }).join('');
+
+  var dotsHtml = pts.map(function(p) {
+    if (!p.hasData) return '<circle cx="' + p.x + '" cy="50" r="2.5" fill="#e0dbd3"/>';
+    return '<circle cx="' + p.x + '" cy="' + p.y + '" r="3" fill="#6b6560"/>';
+  }).join('');
+
+  var avgY = yPct(avg);
+  var avgX1 = (0.5 / n * 100).toFixed(1);
+  var avgX2 = ((n - 0.5) / n * 100).toFixed(1);
+  var avgLineHtml = '<line x1="' + avgX1 + '" y1="' + avgY + '" x2="' + avgX2 + '" y2="' + avgY + '" stroke="#c47c2b" stroke-width="2" stroke-dasharray="4,3" vector-effect="non-scaling-stroke"/>';
+
+  var svgHtml = '<svg style="position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;z-index:2" viewBox="0 0 100 100" preserveAspectRatio="none">' +
+    linesHtml + dotsHtml + avgLineHtml +
+  '</svg>';
+
+  var avgLabel = '<span style="position:absolute;right:2px;top:2px;font-size:0.55rem;font-weight:500;color:#a09a93;letter-spacing:0.04em;pointer-events:none;z-index:3">avg ' + avg.toFixed(1) + ' lbs</span>';
+
+  el.innerHTML =
+    '<p style="font-size:0.6rem;letter-spacing:0.1em;text-transform:uppercase;color:#a09a93;margin-bottom:14px">Weight (lbs)</p>' +
+    '<div style="position:relative;height:130px">' +
+      gridHtml + svgHtml + avgLabel +
+    '</div>' +
+    '<div style="display:flex;margin-top:8px">' +
+      days.map(function(d) {
+        return '<div style="flex:1;min-width:0;text-align:center;font-size:0.6rem;letter-spacing:0.06em;text-transform:uppercase;color:#a09a93;padding:0 1.5px">' + d.label + '</div>';
+      }).join('') +
+    '</div>';
+}
+
 // ── GOALS TAB ─────────────────────────────────────────────────────────────────
 function openTargetsModal() {
   openModal(async function() {
@@ -1619,9 +1765,10 @@ async function renderGoals() {
     ddList.push(dd);
     dkList.push([dd.getFullYear(), String(dd.getMonth()+1).padStart(2,'0'), String(dd.getDate()).padStart(2,'0')].join('-'));
   }
-  var [djList, dgList] = await Promise.all([
+  var [djList, dgList, dwList] = await Promise.all([
     Promise.all(dkList.map(getJournal)),
-    Promise.all(dkList.map(getGoals))
+    Promise.all(dkList.map(getGoals)),
+    Promise.all(dkList.map(getWeight))
   ]);
 
   var weekDays = dkList.map(function(dk, i) {
@@ -1661,6 +1808,17 @@ async function renderGoals() {
     '#8b3a3a',
     0.15
   );
+
+  // Weight chart
+  var weightDays = dkList.map(function(dk, i) {
+    var wEntry = dwList[i];
+    return {
+      label:   ddList[i].toLocaleDateString([], { weekday: 'short' }),
+      value:   wEntry && wEntry.weight ? wEntry.weight : 0,
+      hasData: !!(wEntry && wEntry.weight)
+    };
+  });
+  renderWeightChart(document.getElementById('weight-chart'), weightDays);
 }
 
 

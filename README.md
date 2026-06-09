@@ -30,7 +30,7 @@ Copy `.env.example` to `.env` and add your API key:
 docker compose up -d
 ```
 
-**Manual docker run (Unraid):**
+**Manual docker run:**
 ```bash
 docker run -d \
   --name macro-tracker \

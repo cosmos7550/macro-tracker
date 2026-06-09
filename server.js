@@ -194,6 +194,49 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // ── Weight API ───────────────────────────────────────────────────────────────
+
+  if (req.method === 'GET' && url.pathname === '/api/weight/dates') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(listDataDates('weight_')));
+    return;
+  }
+
+  if (req.method === 'GET' && url.pathname.startsWith('/api/weight/')) {
+    const date = url.pathname.slice('/api/weight/'.length);
+    const data = readData('weight_' + date + '.json');
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(data));
+    return;
+  }
+
+  if (req.method === 'POST' && url.pathname.startsWith('/api/weight/')) {
+    const date = url.pathname.slice('/api/weight/'.length);
+    let body = '';
+    req.on('data', (c) => { body += c; });
+    req.on('end', () => {
+      try {
+        writeData('weight_' + date + '.json', JSON.parse(body));
+        res.writeHead(204); res.end();
+      } catch (_) { res.writeHead(400); res.end('Bad JSON'); }
+    });
+    return;
+  }
+
+  if (req.method === 'DELETE' && url.pathname.startsWith('/api/weight/')) {
+    const date = url.pathname.slice('/api/weight/'.length);
+    try { fs.unlinkSync(path.join(DATA_DIR, 'weight_' + date + '.json')); } catch (_) {}
+    res.writeHead(204); res.end();
+    return;
+  }
+
+  if (req.method === 'DELETE' && url.pathname.startsWith('/api/weight/')) {
+    const date = url.pathname.slice('/api/weight/'.length);
+    try { fs.unlinkSync(path.join(DATA_DIR, 'weight_' + date + '.json')); } catch (_) {}
+    res.writeHead(204); res.end();
+    return;
+  }
+
   // ── Favicon.ico fallback ─────────────────────────────────────────────────────
   if (url.pathname === '/favicon.ico') {
     try {

@@ -1,5 +1,7 @@
 # Macro Tracker
 
+<img src="public/apple-touch-icon.png" width="80" />
+
 AI-powered calorie and macro tracker. Describe a meal in plain text estimates are given to calories, protein, carbs, and fat. Results are saved to a daily food journal.
 
 ## Requirements
@@ -31,3 +33,7 @@ Access via Tailscale: `http://<tailscale-ip>:3052`
 Journal and goals are stored as JSON files in `./data/`:
 - `journal_YYYY-MM-DD.json` — daily food entries
 - `goals_YYYY-MM-DD.json` — macro targets (looks up most recent goal if no exact match)
+
+## Dockerhub
+
+[![Docker Hub](https://img.shields.io/docker/v/earful1751/macro-tracker?label=Docker%20Hub)](https://hub.docker.com/r/earful1751/macro-tracker)

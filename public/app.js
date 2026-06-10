@@ -1558,52 +1558,11 @@ function renderWeekChart(el, title, days, overThreshold, normalColor, overColor,
     '</div>';
   }).join('');
 
-  var goalLine = (function() {
-    var pts = days.map(function(day, i) {
-      return day.target ? { x: (i + 0.5) / days.length * 100, y: (1 - day.target / maxVal) * 100 } : null;
-    });
-    var segments = [];
-    var cur = [];
-    pts.forEach(function(p) {
-      if (p) { cur.push(p); }
-      else if (cur.length) { segments.push(cur); cur = []; }
-    });
-    if (cur.length) segments.push(cur);
-    if (!segments.length) return '';
-    var hw = 50 / days.length;
-    var elems = segments.map(function(seg) {
-      if (seg.length === 1) {
-        return '<line x1="' + (seg[0].x - hw) + '" y1="' + seg[0].y + '" x2="' + (seg[0].x + hw) + '" y2="' + seg[0].y + '"/>';
-      }
-      var d = 'M ' + seg[0].x + ',' + seg[0].y;
-      for (var i = 1; i < seg.length; i++) {
-        var p = seg[i - 1], q = seg[i], mx = (p.x + q.x) / 2;
-        d += ' C ' + mx + ',' + p.y + ' ' + mx + ',' + q.y + ' ' + q.x + ',' + q.y;
-      }
-      return '<path d="' + d + '"/>';
-    });
-    return '<svg style="position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;z-index:2" viewBox="0 0 100 100" preserveAspectRatio="none">' +
-      '<g fill="none" stroke="#c47c2b" stroke-width="2" stroke-dasharray="4,3" vector-effect="non-scaling-stroke">' +
-      elems.join('') + '</g></svg>';
-  })();
-
-  var legendItems = [];
-  if (avgTopPct !== null) {
-    legendItems.push('<span style="font-size:0.55rem;font-weight:500;color:#a09a93;letter-spacing:0.04em">avg ' + Math.round(avg) + (unit || ' cal') + '</span>');
-  }
-  if (goalLine) {
-    legendItems.push(
-      '<div style="display:flex;align-items:center;gap:4px">' +
-        '<svg width="14" height="6" style="flex-shrink:0"><line x1="0" y1="3" x2="14" y2="3" stroke="#c47c2b" stroke-width="2" stroke-dasharray="4,3"/></svg>' +
-        '<span style="font-size:0.55rem;font-weight:500;color:#a09a93;letter-spacing:0.04em">target</span>' +
-      '</div>'
-    );
-  }
-  var legend = legendItems.length
-    ? '<div style="position:absolute;right:2px;top:2px;display:flex;flex-direction:column;align-items:flex-end;gap:2px;pointer-events:none;z-index:3">' + legendItems.join('') + '</div>'
+  var legend = avgTopPct !== null
+    ? '<div style="position:absolute;right:2px;top:2px;pointer-events:none;z-index:3"><span style="font-size:0.55rem;font-weight:500;color:#a09a93;letter-spacing:0.04em">avg ' + Math.round(avg) + (unit || ' cal') + '</span></div>'
     : '';
 
-  var avgLine = goalLine + legend;
+  var avgLine = legend;
 
   el.innerHTML =
     '<p style="font-size:0.6rem;letter-spacing:0.1em;text-transform:uppercase;color:#a09a93;margin-bottom:14px">' + title + '</p>' +

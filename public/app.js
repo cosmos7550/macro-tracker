@@ -1719,7 +1719,7 @@ document.getElementById('goals-settings-btn').addEventListener('click', openTarg
 
 // ── Chart range helpers ───────────────────────────────────────────────────────
 async function buildRangeData(range) {
-  var totalDays = range === '1m' ? 30 : range === '3m' ? 91 : range === '1y' ? 365 : 7;
+  var totalDays = range === '1m' ? 30 : range === '6m' ? 182 : range === '1y' ? 365 : 7;
   var today = new Date();
   var dateKeys = [];
   var dates = [];
@@ -1820,7 +1820,7 @@ async function buildRangeData(range) {
   }
 
   var buckets;
-  if (range === '3m') {
+  if (range === '6m') {
     buckets = bucketWeekly(dailyData);
   } else if (range === '1y') {
     buckets = bucketMonthly(dailyData);
@@ -1841,7 +1841,7 @@ function renderChartControls(activeRange) {
   var ranges = [
     { key: '7d', label: '7D' },
     { key: '1m', label: '1M' },
-    { key: '3m', label: '3M' },
+    { key: '6m', label: '6M' },
     { key: '1y', label: '1Y' }
   ];
   var btns = ranges.map(function(r) {

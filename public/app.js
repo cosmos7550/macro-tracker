@@ -1518,6 +1518,12 @@ function renderWeekChart(el, title, days, overThreshold, normalColor, overColor,
     return '<div style="position:absolute;left:0;right:0;top:' + ((1-p)*100) + '%;border-top:1px solid #ede9e2;pointer-events:none"></div>';
   }).join('');
 
+  var yAxisHtml = [0.25, 0.5, 0.75].map(function(p) {
+    var val = Math.round(p * maxVal);
+    var label = val >= 1000 ? (val / 1000).toFixed(val % 1000 === 0 ? 0 : 1) + 'k' : String(val);
+    return '<div style="position:absolute;right:4px;top:' + ((1-p)*100) + '%;transform:translateY(-100%);font-size:0.6rem;color:#a09a93;letter-spacing:0.06em;pointer-events:none;line-height:1;text-align:right">' + label + '</div>';
+  }).join('');
+
   var barsHtml = days.map(function(day) {
     var h    = day.value > 0 ? Math.max((day.value / maxVal) * 100, 3) : 0;
     var over = day.target && (underPct != null
@@ -1601,13 +1607,16 @@ function renderWeekChart(el, title, days, overThreshold, normalColor, overColor,
 
   el.innerHTML =
     '<p style="font-size:0.6rem;letter-spacing:0.1em;text-transform:uppercase;color:#a09a93;margin-bottom:14px">' + title + '</p>' +
-    '<div style="position:relative;height:130px">' +
-      gridHtml +
-      '<div style="position:absolute;inset:0;display:flex;align-items:flex-end">' + barsHtml + '</div>' +
-      errorsHtml +
-      avgLine +
+    '<div style="display:flex">' +
+      '<div style="width:30px;flex-shrink:0;position:relative;height:130px">' + yAxisHtml + '</div>' +
+      '<div style="flex:1;position:relative;height:130px">' +
+        gridHtml +
+        '<div style="position:absolute;inset:0;display:flex;align-items:flex-end">' + barsHtml + '</div>' +
+        errorsHtml +
+        avgLine +
+      '</div>' +
     '</div>' +
-    '<div style="display:flex;margin-top:8px">' +
+    '<div style="display:flex;margin-top:8px;margin-left:30px">' +
       days.map(function(d) {
         return '<div style="flex:1;min-width:0;text-align:center;font-size:0.6rem;letter-spacing:0.06em;text-transform:uppercase;color:#a09a93;padding:0 1.5px">' + d.label + '</div>';
       }).join('') +
@@ -1639,6 +1648,11 @@ function renderWeightChart(el, days) {
 
   var gridHtml = [0.25, 0.5, 0.75].map(function(p) {
     return '<div style="position:absolute;left:0;right:0;top:' + ((1-p)*100) + '%;border-top:1px solid #ede9e2;pointer-events:none"></div>';
+  }).join('');
+
+  var yAxisHtml = [0.25, 0.5, 0.75].map(function(p) {
+    var val = Math.round(lo + p * range);
+    return '<div style="position:absolute;right:4px;top:' + ((1-p)*100) + '%;transform:translateY(-100%);font-size:0.6rem;color:#a09a93;letter-spacing:0.06em;pointer-events:none;line-height:1;text-align:right">' + val + '</div>';
   }).join('');
 
   var n = days.length;
@@ -1680,7 +1694,7 @@ function renderWeightChart(el, days) {
 
   var labelsHtml;
   if (dense) {
-    labelsHtml = '<div style="position:relative;height:14px;margin-top:8px">' +
+    labelsHtml = '<div style="position:relative;height:14px;margin-top:8px;margin-left:30px">' +
       days.map(function(d, i) {
         if (!d.label) return '';
         var x = ((i + 0.5) / n * 100);
@@ -1688,7 +1702,7 @@ function renderWeightChart(el, days) {
       }).join('') +
     '</div>';
   } else {
-    labelsHtml = '<div style="display:flex;margin-top:8px">' +
+    labelsHtml = '<div style="display:flex;margin-top:8px;margin-left:30px">' +
       days.map(function(d) {
         return '<div style="flex:1;min-width:0;text-align:center;font-size:0.6rem;letter-spacing:0.06em;text-transform:uppercase;color:#a09a93;padding:0 1.5px">' + d.label + '</div>';
       }).join('') +
@@ -1697,9 +1711,12 @@ function renderWeightChart(el, days) {
 
   el.innerHTML =
     '<p style="font-size:0.6rem;letter-spacing:0.1em;text-transform:uppercase;color:#a09a93;margin-bottom:14px">Weight (lbs)</p>' +
-    '<div style="position:relative;height:130px">' +
-      gridHtml + avgLineHtml + dotsHtml +
-      (avgLineHtml ? '<div style="position:absolute;right:2px;top:2px;display:flex;align-items:center;gap:5px;pointer-events:none;z-index:3"><div style="width:14px;height:2px;background:#6b92b8;border-radius:1px"></div><span style="font-size:0.55rem;font-weight:500;color:#a09a93;letter-spacing:0.04em">7 day rolling avg</span></div>' : '') +
+    '<div style="display:flex">' +
+      '<div style="width:30px;flex-shrink:0;position:relative;height:130px">' + yAxisHtml + '</div>' +
+      '<div style="flex:1;position:relative;height:130px">' +
+        gridHtml + avgLineHtml + dotsHtml +
+        (avgLineHtml ? '<div style="position:absolute;right:2px;top:2px;display:flex;align-items:center;gap:5px;pointer-events:none;z-index:3"><div style="width:14px;height:2px;background:#6b92b8;border-radius:1px"></div><span style="font-size:0.55rem;font-weight:500;color:#a09a93;letter-spacing:0.04em">7 day rolling avg</span></div>' : '') +
+      '</div>' +
     '</div>' +
     labelsHtml;
 }

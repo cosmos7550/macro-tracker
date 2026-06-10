@@ -1855,11 +1855,11 @@ async function buildRangeData(range) {
       if (!map[key]) { map[key] = []; order.push(key); }
       map[key].push(d);
     });
-    return order.map(function(key) {
+    return order.map(function(key, idx) {
       var chunk = map[key];
       var withCal = chunk.filter(function(d) { return d.hasData; });
       var withWt  = chunk.filter(function(d) { return d.hasWeight; });
-      var label = chunk[0].date.toLocaleDateString([], { month: 'short' });
+      var label = idx % 2 === 0 ? chunk[0].date.toLocaleDateString([], { month: 'short' }) : '';
       return {
         label:     label,
         calories:  withCal.length ? withCal.reduce(function(s,d){return s+d.calories;},0)/withCal.length : 0,
@@ -1891,11 +1891,30 @@ async function buildRangeData(range) {
   var proDays  = buckets.map(function(b) { return { label: b.label, value: b.protein,  target: b.proTarget, hasData: b.hasData, range: b.proRange, isToday: b.isToday }; });
 
   var weightDays;
-  if (range === '6m' || range === '1y') {
+  if (range === '6m') {
     weightDays = displayData.map(function(d, i) {
       var label = d.date.getDate() === 15 ? d.date.toLocaleDateString([], { month: 'short' }) : '';
-      var show = range === '1y' ? i % 3 === 0 : i % 2 === 0;
-      return { label: label, value: d.weight, hasData: d.hasWeight && show, rollingAvg: displayRolling[i] };
+      return { label: label, value: d.weight, hasData: d.hasWeight && i % 2 === 0, rollingAvg: displayRolling[i] };
+    });
+  } else if (range === '1y') {
+    var wMonthOrder = [], wMonthKeys = {};
+    displayData.forEach(function(d) {
+      var mk = d.date.getFullYear() + '-' + d.date.getMonth();
+      if (!wMonthKeys[mk]) {
+        wMonthKeys[mk] = { idx: wMonthOrder.length, name: d.date.toLocaleDateString([], { month: 'short' }) };
+        wMonthOrder.push(mk);
+      }
+    });
+    var wTotalMonths = wMonthOrder.length;
+    var wLabelIdx = {};
+    wMonthOrder.forEach(function(mk, mi) {
+      if (mi % 2 === 0) {
+        var ti = Math.min(Math.round(displayData.length * (mi + 0.5) / wTotalMonths - 0.5), displayData.length - 1);
+        wLabelIdx[ti] = wMonthKeys[mk].name;
+      }
+    });
+    weightDays = displayData.map(function(d, i) {
+      return { label: wLabelIdx[i] || '', value: d.weight, hasData: d.hasWeight && i % 3 === 0, rollingAvg: displayRolling[i] };
     });
   } else {
     weightDays = buckets.map(function(b, i) {

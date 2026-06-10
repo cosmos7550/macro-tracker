@@ -1558,21 +1558,21 @@ function renderWeekChart(el, title, days, overThreshold, normalColor, overColor,
     '</div>';
   }).join('');
 
-  var legend = avgTopPct !== null
-    ? '<div style="position:absolute;right:2px;top:2px;pointer-events:none;z-index:3"><span style="font-size:0.55rem;font-weight:500;color:#a09a93;letter-spacing:0.04em">avg ' + Math.round(avg) + (unit || ' cal') + '</span></div>'
+  var avgLabel = avgTopPct !== null
+    ? '<span style="font-size:0.55rem;font-weight:500;color:#a09a93;letter-spacing:0.04em">avg ' + Math.round(avg) + (unit || ' cal') + '</span>'
     : '';
 
-  var avgLine = legend;
-
   el.innerHTML =
-    '<p style="font-size:0.6rem;letter-spacing:0.1em;text-transform:uppercase;color:#a09a93;margin-bottom:14px">' + title + '</p>' +
+    '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px">' +
+      '<p style="font-size:0.6rem;letter-spacing:0.1em;text-transform:uppercase;color:#a09a93;margin:0">' + title + '</p>' +
+      avgLabel +
+    '</div>' +
     '<div style="display:flex">' +
       '<div style="width:30px;flex-shrink:0;position:relative;height:130px">' + yAxisHtml + '</div>' +
       '<div style="flex:1;position:relative;height:130px">' +
         gridHtml +
         '<div style="position:absolute;inset:0;display:flex;align-items:flex-end">' + barsHtml + '</div>' +
         errorsHtml +
-        avgLine +
       '</div>' +
     '</div>' +
     '<div style="display:flex;margin-top:8px;margin-left:30px">' +

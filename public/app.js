@@ -1532,14 +1532,19 @@ function renderWeekChart(el, title, days, overThreshold, normalColor, overColor,
     var color = !day.hasData ? '#e8e4dc' : over ? overColor : normalColor;
     var show = h > 20 && days.length <= 10;
 
+    var targetTopPct = (day.target > 0 && over) ? (1 - day.target / maxVal) * 100 : null;
+    var goalLineColor = underPct != null ? '#a09a93' : '#f4f1ec';
     var barPad = days.length > 10 ? '2px' : '4px';
-    return '<div style="flex:1;min-width:0;display:flex;align-items:flex-end;justify-content:stretch;height:100%;padding:0 ' + barPad + '">' +
+    return '<div style="flex:1;min-width:0;display:flex;align-items:flex-end;justify-content:stretch;height:100%;padding:0 ' + barPad + ';position:relative">' +
       '<div style="position:relative;width:100%;height:' + h + '%">' +
         '<div style="width:100%;height:100%;background:' + color + ';border-radius:1px 1px 0 0"></div>' +
         (day.value > 0 && show
           ? '<div style="position:absolute;bottom:4px;left:0;right:0;text-align:center;font-size:0.62rem;font-weight:600;color:rgba(255,255,255,0.85);line-height:1;letter-spacing:0.02em">' + Math.round(day.value) + '</div>'
           : '') +
       '</div>' +
+      (targetTopPct !== null
+        ? '<div style="position:absolute;left:0;right:0;top:' + targetTopPct.toFixed(1) + '%;border-top:2px dotted ' + goalLineColor + ';pointer-events:none;z-index:4"></div>'
+        : '') +
     '</div>';
   }).join('');
 
@@ -1812,6 +1817,11 @@ async function buildRangeData(range) {
     return '';
   }
 
+  function avgTarget(chunk, key) {
+    var days = chunk.filter(function(d) { return d[key] != null; });
+    return days.length ? days.reduce(function(s,d){return s+d[key];},0)/days.length : null;
+  }
+
   function bucketWeekly(data) {
     var buckets = [];
     for (var i = 0; i < data.length; i += 7) {
@@ -1824,8 +1834,8 @@ async function buildRangeData(range) {
         label:     label,
         calories:  withCal.length ? withCal.reduce(function(s,d){return s+d.calories;},0)/withCal.length : 0,
         protein:   withCal.length ? withCal.reduce(function(s,d){return s+d.protein;},0)/withCal.length  : 0,
-        calTarget: chunk[chunk.length-1].calTarget,
-        proTarget: chunk[chunk.length-1].proTarget,
+        calTarget: avgTarget(chunk, 'calTarget'),
+        proTarget: avgTarget(chunk, 'proTarget'),
         calRange:  withCal.length ? withCal.reduce(function(s,d){return s+d.calRange;},0)/withCal.length : 0,
         proRange:  withCal.length ? withCal.reduce(function(s,d){return s+d.proRange;},0)/withCal.length : 0,
         hasData:   withCal.length > 0,
@@ -1854,8 +1864,8 @@ async function buildRangeData(range) {
         label:     label,
         calories:  withCal.length ? withCal.reduce(function(s,d){return s+d.calories;},0)/withCal.length : 0,
         protein:   withCal.length ? withCal.reduce(function(s,d){return s+d.protein;},0)/withCal.length  : 0,
-        calTarget: chunk[chunk.length-1].calTarget,
-        proTarget: chunk[chunk.length-1].proTarget,
+        calTarget: avgTarget(chunk, 'calTarget'),
+        proTarget: avgTarget(chunk, 'proTarget'),
         calRange:  withCal.length ? withCal.reduce(function(s,d){return s+d.calRange;},0)/withCal.length : 0,
         proRange:  withCal.length ? withCal.reduce(function(s,d){return s+d.proRange;},0)/withCal.length : 0,
         hasData:   withCal.length > 0,

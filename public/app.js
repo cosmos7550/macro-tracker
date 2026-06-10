@@ -1524,9 +1524,10 @@ function renderWeekChart(el, title, days, overThreshold, normalColor, overColor,
       ? day.value < day.target * (1 - underPct)
       : day.value > day.target + overThreshold);
     var color = !day.hasData ? '#e8e4dc' : over ? overColor : normalColor;
-    var show = h > 20;
+    var show = h > 20 && days.length <= 10;
 
-    return '<div style="flex:1;min-width:0;display:flex;align-items:flex-end;justify-content:stretch;height:100%;padding:0 4px">' +
+    var barPad = days.length > 10 ? '2px' : '4px';
+    return '<div style="flex:1;min-width:0;display:flex;align-items:flex-end;justify-content:stretch;height:100%;padding:0 ' + barPad + '">' +
       '<div style="position:relative;width:100%;height:' + h + '%">' +
         '<div style="width:100%;height:100%;background:' + color + ';border-radius:1px 1px 0 0"></div>' +
         (day.value > 0 && show
@@ -1718,7 +1719,7 @@ document.getElementById('goals-settings-btn').addEventListener('click', openTarg
 
 // ── Chart range helpers ───────────────────────────────────────────────────────
 async function buildRangeData(range) {
-  var totalDays = range === '1m' ? 28 : range === '3m' ? 91 : range === '1y' ? 365 : 7;
+  var totalDays = range === '1m' ? 30 : range === '3m' ? 91 : range === '1y' ? 365 : 7;
   var today = new Date();
   var dateKeys = [];
   var dates = [];
@@ -1761,7 +1762,6 @@ async function buildRangeData(range) {
 
   function makeDayLabel(dd, i) {
     if (range === '7d') return dd.toLocaleDateString([], { weekday: 'short' });
-    if (range === '1m') return (i % 5 === 0) ? String(dd.getDate()) : '';
     return '';
   }
 
@@ -1820,7 +1820,7 @@ async function buildRangeData(range) {
   }
 
   var buckets;
-  if (range === '1m' || range === '3m') {
+  if (range === '3m') {
     buckets = bucketWeekly(dailyData);
   } else if (range === '1y') {
     buckets = bucketMonthly(dailyData);

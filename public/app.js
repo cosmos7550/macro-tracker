@@ -196,9 +196,10 @@ var P = {
 };
 
 // ── Tab switching ─────────────────────────────────────────────────────────────
-var currentTab = 'log';
-var viewDate   = todayKey();
-var logDate    = todayKey();
+var currentTab       = 'log';
+var viewDate         = todayKey();
+var logDate          = todayKey();
+var currentChartRange = '7d';
 
 async function buildQuickLogItems() {
   var today = new Date();
@@ -1601,7 +1602,7 @@ function renderWeekChart(el, title, days, overThreshold, normalColor, overColor,
     '</div>';
 }
 
-// ── Weight line chart ─────────────────────────────────────────────────────────
+// ── Weight scatter chart ──────────────────────────────────────────────────────
 function renderWeightChart(el, days) {
   if (!el) return;
 
@@ -1613,8 +1614,6 @@ function renderWeightChart(el, days) {
       '<p style="font-size:0.75rem;color:#c4bdb5;font-style:italic">Keep logging to see weekly trends</p>';
     return;
   }
-
-  var avg = daysWithData.reduce(function(s, d) { return s + d.value; }, 0) / daysWithData.length;
 
   var allVals = daysWithData.map(function(d) { return d.value; });
   var minVal = Math.min.apply(null, allVals);
@@ -1631,48 +1630,17 @@ function renderWeightChart(el, days) {
   }).join('');
 
   var n = days.length;
-  var pts = days.map(function(d, i) {
-    return { x: ((i + 0.5) / n * 100), y: d.hasData ? yPct(d.value) : null, hasData: d.hasData, value: d.value };
-  });
-
-  var lineSegs = [];
-  var cur = [];
-  pts.forEach(function(p) {
-    if (p.hasData) { cur.push(p); }
-    else if (cur.length) { lineSegs.push(cur); cur = []; }
-  });
-  if (cur.length) lineSegs.push(cur);
-
-  var linesHtml = lineSegs.map(function(seg) {
-    if (seg.length < 2) return '';
-    var d = 'M ' + seg[0].x + ',' + seg[0].y;
-    for (var i = 1; i < seg.length; i++) {
-      var p = seg[i-1], q = seg[i], mx = (p.x + q.x) / 2;
-      d += ' C ' + mx + ',' + p.y + ' ' + mx + ',' + q.y + ' ' + q.x + ',' + q.y;
-    }
-    return '<path d="' + d + '" fill="none" stroke="#6b6560" stroke-width="2" vector-effect="non-scaling-stroke"/>';
+  var dotsHtml = days.map(function(d, i) {
+    if (!d.hasData) return '';
+    var x = ((i + 0.5) / n * 100);
+    var y = yPct(d.value);
+    return '<div style="position:absolute;left:' + x + '%;top:' + y + '%;width:7px;height:7px;border-radius:50%;background:#6b6560;transform:translate(-50%,-50%);pointer-events:none"></div>';
   }).join('');
-
-  var dotsHtml = pts.map(function(p) {
-    if (!p.hasData) return '<circle cx="' + p.x + '" cy="50" r="2.5" fill="#e0dbd3"/>';
-    return '<circle cx="' + p.x + '" cy="' + p.y + '" r="3" fill="#6b6560"/>';
-  }).join('');
-
-  var avgY = yPct(avg);
-  var avgX1 = (0.5 / n * 100).toFixed(1);
-  var avgX2 = ((n - 0.5) / n * 100).toFixed(1);
-  var avgLineHtml = '<line x1="' + avgX1 + '" y1="' + avgY + '" x2="' + avgX2 + '" y2="' + avgY + '" stroke="#c47c2b" stroke-width="2" stroke-dasharray="4,3" vector-effect="non-scaling-stroke"/>';
-
-  var svgHtml = '<svg style="position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;z-index:2" viewBox="0 0 100 100" preserveAspectRatio="none">' +
-    linesHtml + dotsHtml + avgLineHtml +
-  '</svg>';
-
-  var avgLabel = '<span style="position:absolute;right:2px;top:2px;font-size:0.55rem;font-weight:500;color:#a09a93;letter-spacing:0.04em;pointer-events:none;z-index:3">avg ' + avg.toFixed(1) + ' lbs</span>';
 
   el.innerHTML =
     '<p style="font-size:0.6rem;letter-spacing:0.1em;text-transform:uppercase;color:#a09a93;margin-bottom:14px">Weight (lbs)</p>' +
     '<div style="position:relative;height:130px">' +
-      gridHtml + svgHtml + avgLabel +
+      gridHtml + dotsHtml +
     '</div>' +
     '<div style="display:flex;margin-top:8px">' +
       days.map(function(d) {
@@ -1748,6 +1716,147 @@ function openTargetsModal() {
 
 document.getElementById('goals-settings-btn').addEventListener('click', openTargetsModal);
 
+// ── Chart range helpers ───────────────────────────────────────────────────────
+async function buildRangeData(range) {
+  var totalDays = range === '1m' ? 28 : range === '3m' ? 91 : range === '1y' ? 365 : 7;
+  var today = new Date();
+  var dateKeys = [];
+  var dates = [];
+  for (var i = totalDays - 1; i >= 0; i--) {
+    var d = new Date(today);
+    d.setDate(today.getDate() - i);
+    dates.push(d);
+    dateKeys.push([d.getFullYear(), String(d.getMonth()+1).padStart(2,'0'), String(d.getDate()).padStart(2,'0')].join('-'));
+  }
+
+  var [djList, dgList, dwList] = await Promise.all([
+    Promise.all(dateKeys.map(getJournal)),
+    Promise.all(dateKeys.map(getGoals)),
+    Promise.all(dateKeys.map(getWeight))
+  ]);
+
+  var wRField = { calories: 'calRange', protein: 'proRange' };
+  var wER = function(e, k) { return e[wRField[k]] !== undefined ? e[wRField[k]] : Math.max(1, Math.round(e[k] * (e.margin || 0.10))); };
+
+  var dailyData = dateKeys.map(function(dk, i) {
+    var dj = djList[i], dg = dgList[i], dd = dates[i];
+    var tot = computeTotals(dj.entries);
+    var calRange = dj.entries.reduce(function(s, e) { return s + wER(e, 'calories'); }, 0);
+    var proRange = dj.entries.reduce(function(s, e) { return s + wER(e, 'protein');  }, 0);
+    var wEntry = dwList[i];
+    return {
+      date:      dd,
+      calories:  tot.calories,
+      protein:   tot.protein,
+      calTarget: dg && dg.targets ? dg.targets.calories : null,
+      proTarget: dg && dg.targets ? dg.targets.protein  : null,
+      calRange:  calRange,
+      proRange:  proRange,
+      hasData:   dj.entries.length > 0,
+      isToday:   i === totalDays - 1,
+      weight:    wEntry && wEntry.weight ? wEntry.weight : 0,
+      hasWeight: !!(wEntry && wEntry.weight)
+    };
+  });
+
+  function makeDayLabel(dd, i) {
+    if (range === '7d') return dd.toLocaleDateString([], { weekday: 'short' });
+    if (range === '1m') return (i % 5 === 0) ? String(dd.getDate()) : '';
+    return '';
+  }
+
+  function bucketWeekly(data) {
+    var buckets = [];
+    for (var i = 0; i < data.length; i += 7) {
+      var chunk = data.slice(i, i + 7);
+      var withCal = chunk.filter(function(d) { return d.hasData; });
+      var withWt  = chunk.filter(function(d) { return d.hasWeight; });
+      var startDate = chunk[0].date;
+      var label = startDate.toLocaleDateString([], { month: 'short', day: 'numeric' });
+      buckets.push({
+        label:     label,
+        calories:  withCal.length ? withCal.reduce(function(s,d){return s+d.calories;},0)/withCal.length : 0,
+        protein:   withCal.length ? withCal.reduce(function(s,d){return s+d.protein;},0)/withCal.length  : 0,
+        calTarget: chunk[chunk.length-1].calTarget,
+        proTarget: chunk[chunk.length-1].proTarget,
+        calRange:  withCal.length ? withCal.reduce(function(s,d){return s+d.calRange;},0)/withCal.length : 0,
+        proRange:  withCal.length ? withCal.reduce(function(s,d){return s+d.proRange;},0)/withCal.length : 0,
+        hasData:   withCal.length > 0,
+        isToday:   chunk.some(function(d){return d.isToday;}),
+        weight:    withWt.length ? withWt.reduce(function(s,d){return s+d.weight;},0)/withWt.length : 0,
+        hasWeight: withWt.length > 0
+      });
+    }
+    return buckets;
+  }
+
+  function bucketMonthly(data) {
+    var map = {};
+    var order = [];
+    data.forEach(function(d) {
+      var key = d.date.getFullYear() + '-' + d.date.getMonth();
+      if (!map[key]) { map[key] = []; order.push(key); }
+      map[key].push(d);
+    });
+    return order.map(function(key) {
+      var chunk = map[key];
+      var withCal = chunk.filter(function(d) { return d.hasData; });
+      var withWt  = chunk.filter(function(d) { return d.hasWeight; });
+      var label = chunk[0].date.toLocaleDateString([], { month: 'short' });
+      return {
+        label:     label,
+        calories:  withCal.length ? withCal.reduce(function(s,d){return s+d.calories;},0)/withCal.length : 0,
+        protein:   withCal.length ? withCal.reduce(function(s,d){return s+d.protein;},0)/withCal.length  : 0,
+        calTarget: chunk[chunk.length-1].calTarget,
+        proTarget: chunk[chunk.length-1].proTarget,
+        calRange:  withCal.length ? withCal.reduce(function(s,d){return s+d.calRange;},0)/withCal.length : 0,
+        proRange:  withCal.length ? withCal.reduce(function(s,d){return s+d.proRange;},0)/withCal.length : 0,
+        hasData:   withCal.length > 0,
+        isToday:   chunk.some(function(d){return d.isToday;}),
+        weight:    withWt.length ? withWt.reduce(function(s,d){return s+d.weight;},0)/withWt.length : 0,
+        hasWeight: withWt.length > 0
+      };
+    });
+  }
+
+  var buckets;
+  if (range === '1m' || range === '3m') {
+    buckets = bucketWeekly(dailyData);
+  } else if (range === '1y') {
+    buckets = bucketMonthly(dailyData);
+  } else {
+    buckets = dailyData.map(function(d, i) {
+      return Object.assign({}, d, { label: makeDayLabel(d.date, i) });
+    });
+  }
+
+  var calDays    = buckets.map(function(b) { return { label: b.label, value: b.calories,  target: b.calTarget, hasData: b.hasData, range: b.calRange, isToday: b.isToday }; });
+  var proDays    = buckets.map(function(b) { return { label: b.label, value: b.protein,   target: b.proTarget, hasData: b.hasData, range: b.proRange, isToday: b.isToday }; });
+  var weightDays = buckets.map(function(b) { return { label: b.label, value: b.weight,    hasData: b.hasWeight }; });
+
+  return { calDays: calDays, proDays: proDays, weightDays: weightDays };
+}
+
+function renderChartControls(activeRange) {
+  var ranges = [
+    { key: '7d', label: '7D' },
+    { key: '1m', label: '1M' },
+    { key: '3m', label: '3M' },
+    { key: '1y', label: '1Y' }
+  ];
+  var btns = ranges.map(function(r) {
+    var active = r.key === activeRange;
+    var style = active
+      ? 'background:#1c1917;color:#f4f1ec;border:1px solid #1c1917'
+      : 'background:transparent;color:#6b6560;border:1px solid #e0dbd3';
+    return '<button data-range="' + r.key + '" style="' + style + ';font-size:0.65rem;letter-spacing:0.1em;font-weight:500;padding:4px 10px;border-radius:1px;cursor:pointer;transition:all 0.15s">' + r.label + '</button>';
+  }).join('');
+  return '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">' +
+    '<p style="font-size:0.6rem;letter-spacing:0.1em;text-transform:uppercase;color:#a09a93;margin:0">Progress</p>' +
+    '<div style="display:flex;gap:4px">' + btns + '</div>' +
+  '</div>';
+}
+
 async function renderGoals() {
   var [goals, todayJournal] = await Promise.all([getGoals(), getJournal()]);
   var totals = computeTotals(todayJournal.entries);
@@ -1773,47 +1882,28 @@ async function renderGoals() {
     );
   }
 
-  // Build last 10-days data once, shared by both charts
-  var wRField = { calories: 'calRange', protein: 'proRange' };
-  var wER = function(e, k) { return e[wRField[k]] !== undefined ? e[wRField[k]] : Math.max(1, Math.round(e[k] * (e.margin || 0.10))); };
-
-  var dkList = [];
-  var ddList = [];
-  for (var di = 6; di >= 0; di--) {
-    var dd = new Date();
-    dd.setDate(dd.getDate() - di);
-    ddList.push(dd);
-    dkList.push([dd.getFullYear(), String(dd.getMonth()+1).padStart(2,'0'), String(dd.getDate()).padStart(2,'0')].join('-'));
-  }
-  var [djList, dgList, dwList] = await Promise.all([
-    Promise.all(dkList.map(getJournal)),
-    Promise.all(dkList.map(getGoals)),
-    Promise.all(dkList.map(getWeight))
-  ]);
-
-  var weekDays = dkList.map(function(dk, i) {
-    var dj = djList[i], dg = dgList[i], dd = ddList[i];
-    var di = 6 - i;
-    var tot = computeTotals(dj.entries);
-    var calRange = dj.entries.reduce(function(s, e) { return s + wER(e, 'calories'); }, 0);
-    var proRange = dj.entries.reduce(function(s, e) { return s + wER(e, 'protein');  }, 0);
-    return {
-      label:     dd.toLocaleDateString([], { weekday: 'short' }),
-      calories:  tot.calories,
-      protein:   tot.protein,
-      calTarget: dg && dg.targets ? dg.targets.calories : null,
-      proTarget: dg && dg.targets ? dg.targets.protein  : null,
-      calRange:  calRange,
-      proRange:  proRange,
-      hasData:   dj.entries.length > 0,
-      isToday:   di === 0
-    };
+  // Range selector
+  var controlsEl = document.getElementById('chart-controls');
+  controlsEl.innerHTML = renderChartControls(currentChartRange);
+  controlsEl.querySelectorAll('button[data-range]').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      currentChartRange = btn.dataset.range;
+      renderGoals();
+    });
   });
+
+  // Loading state
+  var loadingMsg = '<p style="font-size:0.75rem;color:#c4bdb5;font-style:italic">Loading…</p>';
+  document.getElementById('calorie-chart').innerHTML = loadingMsg;
+  document.getElementById('protein-chart').innerHTML = loadingMsg;
+  document.getElementById('weight-chart').innerHTML  = loadingMsg;
+
+  var chartData = await buildRangeData(currentChartRange);
 
   renderWeekChart(
     document.getElementById('calorie-chart'),
     'Calories',
-    weekDays.map(function(d) { return { label: d.label, value: d.calories, target: d.calTarget, hasData: d.hasData, range: d.calRange, isToday: d.isToday }; }),
+    chartData.calDays,
     100,
     P.cal.text,
     '#8b3a3a'
@@ -1822,23 +1912,14 @@ async function renderGoals() {
   renderWeekChart(
     document.getElementById('protein-chart'),
     'Protein (g)',
-    weekDays.map(function(d) { return { label: d.label, value: d.protein, target: d.proTarget, hasData: d.hasData, range: d.proRange, isToday: d.isToday }; }),
+    chartData.proDays,
     10,
     P.pro.text,
     '#8b3a3a',
     0.15
   );
 
-  // Weight chart
-  var weightDays = dkList.map(function(dk, i) {
-    var wEntry = dwList[i];
-    return {
-      label:   ddList[i].toLocaleDateString([], { weekday: 'short' }),
-      value:   wEntry && wEntry.weight ? wEntry.weight : 0,
-      hasData: !!(wEntry && wEntry.weight)
-    };
-  });
-  renderWeightChart(document.getElementById('weight-chart'), weightDays);
+  renderWeightChart(document.getElementById('weight-chart'), chartData.weightDays);
 }
 
 

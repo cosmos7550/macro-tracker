@@ -1581,12 +1581,23 @@ function renderWeekChart(el, title, days, overThreshold, normalColor, overColor,
       elems.join('') + '</g></svg>';
   })();
 
-  var avgText = avgTopPct !== null
-    ? '<span style="position:absolute;right:2px;top:2px;font-size:0.55rem;font-weight:500;color:#a09a93;letter-spacing:0.04em;pointer-events:none;z-index:3">avg ' + Math.round(avg) + (unit || ' cal') + '</span>'
+  var legendItems = [];
+  if (avgTopPct !== null) {
+    legendItems.push('<span style="font-size:0.55rem;font-weight:500;color:#a09a93;letter-spacing:0.04em">avg ' + Math.round(avg) + (unit || ' cal') + '</span>');
+  }
+  if (goalLine) {
+    legendItems.push(
+      '<div style="display:flex;align-items:center;gap:4px">' +
+        '<svg width="14" height="6" style="flex-shrink:0"><line x1="0" y1="3" x2="14" y2="3" stroke="#c47c2b" stroke-width="2" stroke-dasharray="4,3"/></svg>' +
+        '<span style="font-size:0.55rem;font-weight:500;color:#a09a93;letter-spacing:0.04em">target</span>' +
+      '</div>'
+    );
+  }
+  var legend = legendItems.length
+    ? '<div style="position:absolute;right:2px;top:2px;display:flex;flex-direction:column;align-items:flex-end;gap:2px;pointer-events:none;z-index:3">' + legendItems.join('') + '</div>'
     : '';
 
-  var avgLine = goalLine + avgText;
-  var targetLine = '';
+  var avgLine = goalLine + legend;
 
   el.innerHTML =
     '<p style="font-size:0.6rem;letter-spacing:0.1em;text-transform:uppercase;color:#a09a93;margin-bottom:14px">' + title + '</p>' +
@@ -1594,7 +1605,7 @@ function renderWeekChart(el, title, days, overThreshold, normalColor, overColor,
       gridHtml +
       '<div style="position:absolute;inset:0;display:flex;align-items:flex-end">' + barsHtml + '</div>' +
       errorsHtml +
-      avgLine + targetLine +
+      avgLine +
     '</div>' +
     '<div style="display:flex;margin-top:8px">' +
       days.map(function(d) {
@@ -1641,6 +1652,32 @@ function renderWeightChart(el, days) {
     return '<div style="position:absolute;left:' + x + '%;top:' + y + '%;width:' + dotSize + ';height:' + dotSize + ';border-radius:50%;background:' + dotColor + ';transform:translate(-50%,-50%);pointer-events:none"></div>';
   }).join('');
 
+  // Rolling 7-day average line
+  var avgPts = days.map(function(d, i) {
+    if (d.rollingAvg == null) return null;
+    return { x: (i + 0.5) / n * 100, y: yPct(d.rollingAvg) };
+  });
+  var lineSegs = [];
+  var cur = [];
+  avgPts.forEach(function(p) {
+    if (p) { cur.push(p); }
+    else if (cur.length) { lineSegs.push(cur); cur = []; }
+  });
+  if (cur.length) lineSegs.push(cur);
+  var avgLineHtml = lineSegs.length ? (
+    '<svg style="position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;z-index:2" viewBox="0 0 100 100" preserveAspectRatio="none">' +
+    lineSegs.map(function(seg) {
+      if (seg.length < 2) return '';
+      var d = 'M ' + seg[0].x + ',' + seg[0].y;
+      for (var i = 1; i < seg.length; i++) {
+        var p = seg[i-1], q = seg[i], mx = (p.x + q.x) / 2;
+        d += ' C ' + mx + ',' + p.y + ' ' + mx + ',' + q.y + ' ' + q.x + ',' + q.y;
+      }
+      return '<path d="' + d + '" fill="none" stroke="#6b92b8" stroke-width="2.5" vector-effect="non-scaling-stroke"/>';
+    }).join('') +
+    '</svg>'
+  ) : '';
+
   var labelsHtml;
   if (dense) {
     labelsHtml = '<div style="position:relative;height:14px;margin-top:8px">' +
@@ -1661,7 +1698,8 @@ function renderWeightChart(el, days) {
   el.innerHTML =
     '<p style="font-size:0.6rem;letter-spacing:0.1em;text-transform:uppercase;color:#a09a93;margin-bottom:14px">Weight (lbs)</p>' +
     '<div style="position:relative;height:130px">' +
-      gridHtml + dotsHtml +
+      gridHtml + avgLineHtml + dotsHtml +
+      (avgLineHtml ? '<div style="position:absolute;right:2px;top:2px;display:flex;align-items:center;gap:5px;pointer-events:none;z-index:3"><div style="width:14px;height:2px;background:#6b92b8;border-radius:1px"></div><span style="font-size:0.55rem;font-weight:500;color:#a09a93;letter-spacing:0.04em">7 day rolling avg</span></div>' : '') +
     '</div>' +
     labelsHtml;
 }
@@ -1736,10 +1774,12 @@ document.getElementById('goals-settings-btn').addEventListener('click', openTarg
 // ── Chart range helpers ───────────────────────────────────────────────────────
 async function buildRangeData(range) {
   var totalDays = range === '1m' ? 30 : range === '6m' ? 182 : range === '1y' ? 365 : 7;
+  var buffer = 6; // extra days fetched before display window for rolling avg lookback
+  var fetchDays = totalDays + buffer;
   var today = new Date();
   var dateKeys = [];
   var dates = [];
-  for (var i = totalDays - 1; i >= 0; i--) {
+  for (var i = fetchDays - 1; i >= 0; i--) {
     var d = new Date(today);
     d.setDate(today.getDate() - i);
     dates.push(d);
@@ -1770,11 +1810,22 @@ async function buildRangeData(range) {
       calRange:  calRange,
       proRange:  proRange,
       hasData:   dj.entries.length > 0,
-      isToday:   i === totalDays - 1,
+      isToday:   i === fetchDays - 1,
       weight:    wEntry && wEntry.weight ? wEntry.weight : 0,
       hasWeight: !!(wEntry && wEntry.weight)
     };
   });
+
+  // Compute rolling 7-day avg over the full fetched range (including buffer)
+  var rollingAvgs = dailyData.map(function(d, i) {
+    var window = dailyData.slice(Math.max(0, i - 6), i + 1).filter(function(x) { return x.hasWeight; });
+    if (window.length < 1) return null;
+    return window.reduce(function(s, x) { return s + x.weight; }, 0) / window.length;
+  });
+
+  // Trim to display window only (drop the buffer prefix)
+  var displayData = dailyData.slice(buffer);
+  var displayRolling = rollingAvgs.slice(buffer);
 
   function makeDayLabel(dd, i) {
     if (range === '7d') return dd.toLocaleDateString([], { weekday: 'short' });
@@ -1841,11 +1892,11 @@ async function buildRangeData(range) {
 
   var buckets;
   if (range === '6m') {
-    buckets = bucketWeekly(dailyData);
+    buckets = bucketWeekly(displayData);
   } else if (range === '1y') {
-    buckets = bucketMonthly(dailyData);
+    buckets = bucketMonthly(displayData);
   } else {
-    buckets = dailyData.map(function(d, i) {
+    buckets = displayData.map(function(d, i) {
       return Object.assign({}, d, { label: makeDayLabel(d.date, i) });
     });
   }
@@ -1855,13 +1906,15 @@ async function buildRangeData(range) {
 
   var weightDays;
   if (range === '6m' || range === '1y') {
-    weightDays = dailyData.map(function(d, i) {
+    weightDays = displayData.map(function(d, i) {
       var label = d.date.getDate() === 15 ? d.date.toLocaleDateString([], { month: 'short' }) : '';
       var show = range === '1y' ? i % 3 === 0 : i % 2 === 0;
-      return { label: label, value: d.weight, hasData: d.hasWeight && show };
+      return { label: label, value: d.weight, hasData: d.hasWeight && show, rollingAvg: displayRolling[i] };
     });
   } else {
-    weightDays = buckets.map(function(b) { return { label: b.label, value: b.weight, hasData: b.hasWeight }; });
+    weightDays = buckets.map(function(b, i) {
+      return { label: b.label, value: b.weight, hasData: b.hasWeight, rollingAvg: displayRolling[displayRolling.length - buckets.length + i] };
+    });
   }
 
   return { calDays: calDays, proDays: proDays, weightDays: weightDays };

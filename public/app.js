@@ -1635,23 +1635,48 @@ function renderWeightChart(el, days) {
     if (d.rollingAvg == null) return null;
     return { x: (i + 0.5) / n * 100, y: yPct(d.rollingAvg) };
   });
-  var lineSegs = [];
-  var cur = [];
-  avgPts.forEach(function(p) {
-    if (p) { cur.push(p); }
-    else if (cur.length) { lineSegs.push(cur); cur = []; }
-  });
-  if (cur.length) lineSegs.push(cur);
-  var avgLineHtml = lineSegs.length ? (
+
+  var lastWeightIdx = -1;
+  days.forEach(function(d, i) { if (d.hasWeight) lastWeightIdx = i; });
+
+  // Points up to and including last logged weight = solid; remaining = dashed
+  var solidPts = avgPts.slice(0, lastWeightIdx + 1);
+  var dashedPts = (lastWeightIdx >= 0 && lastWeightIdx < avgPts.length - 1)
+    ? avgPts.slice(lastWeightIdx)
+    : [];
+
+  function buildSegs(pts) {
+    var segs = [], cur = [];
+    pts.forEach(function(p) {
+      if (p) { cur.push(p); }
+      else if (cur.length) { segs.push(cur); cur = []; }
+    });
+    if (cur.length) segs.push(cur);
+    return segs;
+  }
+
+  function pathFromSeg(seg) {
+    if (seg.length < 2) return '';
+    var d = 'M ' + seg[0].x + ',' + seg[0].y;
+    for (var i = 1; i < seg.length; i++) {
+      var p = seg[i-1], q = seg[i], mx = (p.x + q.x) / 2;
+      d += ' C ' + mx + ',' + p.y + ' ' + mx + ',' + q.y + ' ' + q.x + ',' + q.y;
+    }
+    return d;
+  }
+
+  var solidSegs = buildSegs(solidPts);
+  var dashedSegs = buildSegs(dashedPts);
+
+  var avgLineHtml = (solidSegs.length || dashedSegs.length) ? (
     '<svg style="position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;z-index:2" viewBox="0 0 100 100" preserveAspectRatio="none">' +
-    lineSegs.map(function(seg) {
-      if (seg.length < 2) return '';
-      var d = 'M ' + seg[0].x + ',' + seg[0].y;
-      for (var i = 1; i < seg.length; i++) {
-        var p = seg[i-1], q = seg[i], mx = (p.x + q.x) / 2;
-        d += ' C ' + mx + ',' + p.y + ' ' + mx + ',' + q.y + ' ' + q.x + ',' + q.y;
-      }
-      return '<path d="' + d + '" fill="none" stroke="#6b92b8" stroke-width="2.5" vector-effect="non-scaling-stroke"/>';
+    solidSegs.map(function(seg) {
+      var d = pathFromSeg(seg);
+      return d ? '<path d="' + d + '" fill="none" stroke="#6b92b8" stroke-width="2.5" vector-effect="non-scaling-stroke"/>' : '';
+    }).join('') +
+    dashedSegs.map(function(seg) {
+      var d = pathFromSeg(seg);
+      return d ? '<path d="' + d + '" fill="none" stroke="#6b92b8" stroke-width="2.5" stroke-dasharray="4,3" opacity="0.6" vector-effect="non-scaling-stroke"/>' : '';
     }).join('') +
     '</svg>'
   ) : '';
@@ -1894,7 +1919,7 @@ async function buildRangeData(range) {
   if (range === '6m') {
     weightDays = displayData.map(function(d, i) {
       var label = d.date.getDate() === 15 ? d.date.toLocaleDateString([], { month: 'short' }) : '';
-      return { label: label, value: d.weight, hasData: d.hasWeight && i % 2 === 0, rollingAvg: displayRolling[i] };
+      return { label: label, value: d.weight, hasData: d.hasWeight && i % 2 === 0, hasWeight: d.hasWeight, rollingAvg: displayRolling[i] };
     });
   } else if (range === '1y') {
     var wMonthOrder = [], wMonthKeys = {};
@@ -1914,11 +1939,11 @@ async function buildRangeData(range) {
       }
     });
     weightDays = displayData.map(function(d, i) {
-      return { label: wLabelIdx[i] || '', value: d.weight, hasData: d.hasWeight && i % 3 === 0, rollingAvg: displayRolling[i] };
+      return { label: wLabelIdx[i] || '', value: d.weight, hasData: d.hasWeight && i % 3 === 0, hasWeight: d.hasWeight, rollingAvg: displayRolling[i] };
     });
   } else {
     weightDays = buckets.map(function(b, i) {
-      return { label: b.label, value: b.weight, hasData: b.hasWeight, rollingAvg: displayRolling[displayRolling.length - buckets.length + i] };
+      return { label: b.label, value: b.weight, hasData: b.hasWeight, hasWeight: b.hasWeight, rollingAvg: displayRolling[displayRolling.length - buckets.length + i] };
     });
   }
 

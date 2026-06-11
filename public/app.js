@@ -530,7 +530,7 @@ function renderLogDateLabel() {
   var isToday = logDate === todayKey();
   var d = new Date(logDate + 'T12:00:00');
   var label = isToday
-    ? 'Today · ' + d.toLocaleDateString([], { month: 'short', day: 'numeric' })
+    ? 'Today'
     : d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
   el.textContent = label;
   el.style.color = '#6b6560';

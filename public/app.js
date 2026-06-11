@@ -1835,8 +1835,8 @@ async function buildRangeData(range) {
   var displayData = dailyData.slice(buffer);
   var displayRolling = rollingAvgs.slice(buffer);
 
-  function makeDayLabel(dd, i) {
-    if (range === '7d') return dd.toLocaleDateString([], { weekday: 'short' });
+  function makeDayLabel(dd, i, isToday) {
+    if (range === '7d') return isToday ? 'Today' : dd.toLocaleDateString([], { weekday: 'short' });
     if (range === '1m') {
       return i % 7 === 0
         ? dd.toLocaleDateString([], { month: 'short', day: 'numeric' })
@@ -1911,7 +1911,7 @@ async function buildRangeData(range) {
     buckets = bucketMonthly(displayData);
   } else {
     buckets = displayData.map(function(d, i) {
-      return Object.assign({}, d, { label: makeDayLabel(d.date, i) });
+      return Object.assign({}, d, { label: makeDayLabel(d.date, i, d.isToday) });
     });
   }
 

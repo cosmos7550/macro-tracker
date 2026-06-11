@@ -1548,7 +1548,7 @@ function renderWeekChart(el, title, days, overThreshold, normalColor, overColor,
     '</div>';
   }).join('');
 
-  var errorsHtml = days.map(function(day, i) {
+  var errorsHtml = days.length > 7 ? '' : days.map(function(day, i) {
     if (!day.hasData || !day.range || day.range <= 0) return '';
     var low  = Math.max(0, day.value - day.range);
     var high = day.value + day.range;

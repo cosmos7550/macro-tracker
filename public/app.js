@@ -1580,9 +1580,11 @@ function renderWeekChart(el, title, days, overThreshold, normalColor, overColor,
         errorsHtml +
       '</div>' +
     '</div>' +
-    '<div style="display:flex;margin-top:8px;margin-left:30px">' +
-      days.map(function(d) {
-        return '<div style="flex:1;min-width:0;text-align:center;font-size:0.6rem;letter-spacing:0.06em;text-transform:uppercase;color:#a09a93;padding:0 1.5px">' + d.label + '</div>';
+    '<div style="position:relative;height:14px;margin-top:8px;margin-left:30px">' +
+      days.map(function(d, i) {
+        if (!d.label) return '';
+        var x = ((i + 0.5) / days.length * 100);
+        return '<div style="position:absolute;left:' + x + '%;transform:translateX(-50%);font-size:0.6rem;letter-spacing:0.06em;text-transform:uppercase;color:#a09a93;white-space:nowrap">' + d.label + '</div>';
       }).join('') +
     '</div>';
 }
@@ -1836,8 +1838,9 @@ async function buildRangeData(range) {
   function makeDayLabel(dd, i) {
     if (range === '7d') return dd.toLocaleDateString([], { weekday: 'short' });
     if (range === '1m') {
-      var d = dd.getDate();
-      return (d === 1 || d === 5 || d === 10 || d === 15 || d === 20 || d === 25) ? String(d) : '';
+      return i % 7 === 0
+        ? dd.toLocaleDateString([], { month: 'short', day: 'numeric' })
+        : '';
     }
     return '';
   }

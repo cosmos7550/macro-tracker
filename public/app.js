@@ -119,7 +119,7 @@ async function renderWeightLog() {
         'style="width:90px;border:1px solid #e0dbd3;border-radius:1px;padding:6px 10px;font-size:0.875rem;background:transparent;color:#1c1917;text-align:center" ' +
         'class="focus:outline-none focus:border-[#1c1917] transition-colors">' +
       '<span style="font-size:0.75rem;color:#6b6560">lbs</span>' +
-      '<button id="weight-save-btn" class="text-xs tracking-widest uppercase px-4 py-2 font-medium transition-all" style="background:#1c1917;color:#f4f1ec;border-radius:1px">Log Weight</button>' +
+      '<button id="weight-save-btn" class="text-xs tracking-widest uppercase px-4 py-2 font-medium transition-all" style="border:1px solid #e0dbd3;color:#a09a93;background:transparent;border-radius:1px">Log Weight</button>' +
       '<span id="weight-save-hint" style="font-size:0.7rem;color:#a09a93"></span>' +
     '</div>';
   var capturedDate = date;
@@ -529,7 +529,9 @@ function renderLogDateLabel() {
   if (!el) return;
   var isToday = logDate === todayKey();
   var d = new Date(logDate + 'T12:00:00');
-  var label = isToday ? 'Today' : d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+  var label = isToday
+    ? 'Today · ' + d.toLocaleDateString([], { month: 'short', day: 'numeric' })
+    : d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
   el.textContent = label;
   el.style.color = '#6b6560';
   var nextBtn = document.getElementById('log-date-next');
@@ -965,7 +967,7 @@ async function renderConfirmModal() {
   actions.innerHTML =
     '<div class="grid grid-cols-2 gap-2">' +
       '<button id="confirm-discard" style="border:1px solid #e0dbd3;color:#a09a93;border-radius:1px;padding:10px;font-size:0.65rem;letter-spacing:0.1em;text-transform:uppercase;font-weight:500;transition:all 0.15s">Discard</button>' +
-      '<button id="confirm-add" style="background:#1c1917;color:#f4f1ec;border-radius:1px;padding:10px;font-size:0.65rem;letter-spacing:0.1em;text-transform:uppercase;font-weight:500;transition:all 0.15s">Add to Journal</button>' +
+      '<button id="confirm-add" style="background:#1c1917;color:#f4f1ec;border-radius:1px;padding:10px;font-size:0.65rem;letter-spacing:0.1em;text-transform:uppercase;font-weight:500;transition:all 0.15s">Save entry</button>' +
     '</div>';
   actions.style.display = '';
 
